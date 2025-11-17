@@ -1,1 +1,500 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emaydev — Professional Server Editing Tutorials</title>
+  <style>
+    :root {
+      --bg: #0e1014;
+      --surface: #151821;
+      --surface-2: #1b2030;
+      --text: #e8ecf1;
+      --muted: #a9b3c1;
+      --brand: #7cc6ff;
+      --accent: #7ef7d1;
+      --warn: #f6c177;
+      --danger: #ff6b6b;
+      --link: #9bd0ff;
+      --code: #e2f3ff;
+      --border: #2a3142;
+      --focus: #3a9df8;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius: 14px;
+    }
+
+    /* Base */
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Layout */
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    .hero {
+      background: radial-gradient(1200px 500px at 10% 0%, #172035, transparent),
+                  radial-gradient(800px 400px at 90% 10%, #1b2a3f, transparent),
+                  var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .badge {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      background: linear-gradient(180deg, #172030, #10141d);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .title {
+      margin: 14px 0 8px;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--muted);
+      max-width: 70ch;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.primary {
+      background: linear-gradient(180deg, #173456, #14243a);
+      border-color: #29507a;
+      color: #e9f6ff;
+    }
+    .btn:hover { filter: brightness(1.05); }
+
+    /* Grid + Cards */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 22px;
+    }
+    @media (min-width: 900px) {
+      .grid { grid-template-columns: 260px 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel h3 {
+      margin: 6px 0 12px;
+      font-size: 18px;
+    }
+
+    /* TOC */
+    .toc ul { list-style: none; padding: 0; margin: 0; }
+    .toc li { margin: 8px 0; }
+    .toc a {
+      display: block;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: transparent;
+    }
+    .toc a:hover { background: #1a2335; }
+
+    /* Sections */
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-top: 16px;
+    }
+    section h2 {
+      margin: 4px 0 8px;
+      font-size: 22px;
+    }
+    .kicker {
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    /* Lists */
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+    .item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .item strong { color: var(--brand); }
+
+    /* Accordion */
+    details {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+      margin: 10px 0;
+      padding: 12px;
+    }
+    details[open] { background: #1a2233; }
+    summary {
+      list-style: none;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+    }
+    summary::marker { display: none; }
+
+    /* Code */
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background: #0b0e14;
+      color: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    code { padding: 2px 6px; }
+    pre { padding: 12px; overflow: auto; }
+
+    /* Footer */
+    footer {
+      color: var(--muted);
+      text-align: center;
+      padding: 30px 0 12px;
+    }
+
+    /* Accessibility */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    /* Search */
+    .search {
+      display: flex; gap: 10px; align-items: center; margin-top: 12px;
+    }
+    .search input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f1421;
+      color: var(--text);
+    }
+    .badge.bright { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <div class="hero">
+      <span class="badge">DevtopZ • Server Editing</span>
+      <h1 class="title">Professional Server Editing Tutorials</h1>
+      <p class="subtitle">A friendly, step-by-step series for editing RF-style server data. Learn how .edf, Excel sheets, and configuration files connect—then safely test and deploy your changes.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#phase-i">Start Phase I</a>
+        <a class="btn" href="#series">Browse Full Series</a>
+        <a class="btn" href="#integration">Go to Integration & Testing</a>
+      </div>
+      <div class="search">
+        <label class="sr-only" for="q">Search</label>
+        <input id="q" type="search" placeholder="Search topics (e.g., ItemCombine, SkillForce, EXP curve)"/>
+        <button class="btn" id="searchBtn" type="button">Search</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <!-- TOC -->
+    <aside class="panel toc" aria-label="On-page navigation">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#series">Complete Series Overview</a></li>
+        <li><a href="#intro">Introduction to the server data structure</a></li>
+        <li><a href="#char">Character & player essentials</a></li>
+        <li><a href="#maps">Maps & world configuration</a></li>
+        <li><a href="#items">Items system</a></li>
+        <li><a href="#skills">Skills & combat logic</a></li>
+        <li><a href="#quests">Quests & game progression</a></li>
+        <li><a href="#monsters">Monster system</a></li>
+        <li><a href="#grades">Grades & leveling system</a></li>
+        <li><a href="#language">Language localization</a></li>
+        <li><a href="#config">Config folder</a></li>
+        <li><a href="#integration">Integration & testing</a></li>
+        <li><a href="#phase-i">Phase I — Character.edf deep-dive</a></li>
+      </ul>
+    </aside>
+
+    <!-- Series -->
+    <div>
+      <section id="series" aria-labelledby="series-title">
+        <h2 id="series-title">Complete series overview</h2>
+        <p class="kicker">Use the expandable cards below to explore each episode before diving in.</p>
+
+        <details id="intro">
+          <summary>1. Introduction to the server data structure</summary>
+          <div class="list" role="list">
+            <div class="item" role="listitem">
+              <strong>Folders:</strong> What each folder contains and how data is organized for loading.
+            </div>
+            <div class="item" role="listitem">
+              <strong>Loading:</strong> How the server reads and prioritizes .edf and Excel data types.
+            </div>
+            <div class="item" role="listitem">
+              <strong>Data types:</strong> Understanding .edf vs. .xlsx roles and conversion flow.
+            </div>
+            <div class="item" role="listitem">
+              <strong>System layout:</strong> Foundation episode covering the entire pipeline.
+            </div>
+          </div>
+        </details>
+
+        <details id="char">
+          <summary>2. Character & player essentials</summary>
+          <div class="list">
+            <div class="item"><strong>Character.edf:</strong> Core overview and structure.</div>
+            <div class="item"><strong>PlayerCharacter.edf:</strong> Player definition basics.</div>
+            <div class="item"><strong>Stats:</strong> Classes, growth, and attribute scaling.</div>
+            <div class="item"><strong>Control:</strong> How player stats are defined and governed.</div>
+          </div>
+        </details>
+
+        <details id="maps">
+          <summary>3. Maps & world configuration</summary>
+          <div class="list">
+            <div class="item"><strong>Map.edf:</strong> Map layout and linking.</div>
+            <div class="item"><strong>Resource.edf:</strong> Spawn tables, nodes, world objects.</div>
+            <div class="item"><strong>Linking:</strong> How world data references and connects.</div>
+          </div>
+        </details>
+
+        <details id="items">
+          <summary>4. Items system</summary>
+          <div class="list">
+            <div class="item"><strong>Item.edf:</strong> Base item definitions.</div>
+            <div class="item"><strong>ItemPremium.edf:</strong> Premium item logic.</div>
+            <div class="item"><strong>ItemCash.edf:</strong> Cash items and shop integration.</div>
+            <div class="item"><strong>ItemCombine.edf:</strong> Crafting rules and outcomes.</div>
+            <div class="item"><strong>ItemSetEffect.edf:</strong> Set bonuses and synergy.</div>
+            <div class="item"><strong>ItemTimer.edf:</strong> Timed items and expiration behavior.</div>
+            <div class="item"><strong>Store.edf:</strong> NPC shops and pricing strategies.</div>
+          </div>
+        </details>
+
+        <details id="skills">
+          <summary>5. Skills & combat logic</summary>
+          <div class="list">
+            <div class="item"><strong>SkillForce.edf:</strong> Skill definitions and flags.</div>
+            <div class="item"><strong>CheckPotionEffect.xlsx:</strong> Buffs, debuffs, and potion checks.</div>
+            <div class="item"><strong>Formulas:</strong> Damage equations, buff stacking, interactions.</div>
+          </div>
+        </details>
+
+        <details id="quests">
+          <summary>6. Quests & game progression</summary>
+          <div class="list">
+            <div class="item"><strong>Quest.edf:</strong> Mission chains and requirements.</div>
+            <div class="item"><strong>EventShip.xlsx / MsgEvent.xlsx:</strong> Event triggers and messaging.</div>
+            <div class="item"><strong>Flow:</strong> How progression ties to world and player state.</div>
+          </div>
+        </details>
+
+        <details id="monsters">
+          <summary>7. Monster system</summary>
+          <div class="list">
+            <div class="item"><strong>ItemLooting.xlsx:</strong> Drop tables and rarity tuning.</div>
+            <div class="item"><strong>Schedule.xlsx:</strong> Spawn times and rotations.</div>
+            <div class="item"><strong>MobMessage.xlsx:</strong> Boss announcements and alerts.</div>
+            <div class="item"><strong>Behavior:</strong> AI, aggro rules, and special cases.</div>
+          </div>
+        </details>
+
+        <details id="grades">
+          <summary>8. Grades & leveling system</summary>
+          <div class="list">
+            <div class="item"><strong>Grade.xlsx:</strong> Rank tiers and rewards.</div>
+            <div class="item"><strong>Scaling:</strong> Power progression and breakpoints.</div>
+            <div class="item"><strong>Tuning:</strong> Aligning leveling with content pacing.</div>
+          </div>
+        </details>
+
+        <details id="language">
+          <summary>9. Language localization</summary>
+          <div class="list">
+            <div class="item"><strong>Language.xlsx:</strong> Items, NPCs, UI text.</div>
+            <div class="item"><strong>Branding:</strong> Custom servers and translations.</div>
+            <div class="item"><strong>Quality:</strong> Consistency checks and placeholder safety.</div>
+          </div>
+        </details>
+
+        <details id="config">
+          <summary>10. Config folder</summary>
+          <div class="list">
+            <div class="item"><strong>Settings:</strong> Server-wide toggles and systems.</div>
+            <div class="item"><strong>Rates:</strong> EXP, drop, and economy multipliers.</div>
+            <div class="item"><strong>Balance:</strong> Safe starting points and iteration.</div>
+          </div>
+        </details>
+
+        <details id="integration">
+          <summary>11. Integration & testing</summary>
+          <div class="list">
+            <div class="item"><strong>Repacking:</strong> Safely rebuild and reload .edf files.</div>
+            <div class="item"><strong>Prevention:</strong> Error checks and diff reviews.</div>
+            <div class="item"><strong>Testing:</strong> Staging environments and rollback plans.</div>
+          </div>
+        </details>
+      </section>
+
+      <!-- Phase I -->
+      <section id="phase-i">
+        <h2>Phase I — Character.edf deep-dive tutorial series</h2>
+        <p class="kicker">Master Character.edf with a focused, practical walkthrough. Each topic includes tips to avoid common pitfalls.</p>
+
+        <details>
+          <summary>Understanding each sheet</summary>
+          <div class="list">
+            <div class="item"><strong>Action:</strong> Action states, animation hooks, timing windows.</div>
+            <div class="item"><strong>Animus:</strong> Summon-related parameters and restrictions.</div>
+            <div class="item"><strong>Class:</strong> Class IDs, stat baselines, role flags.</div>
+            <div class="item"><strong>Exp:</strong> Level thresholds and curve definitions.</div>
+            <div class="item"><strong>Grade:</strong> Rank progression and perks.</div>
+            <div class="item"><strong>MasteryLimData:</strong> Caps for skills and equipment proficiencies.</div>
+            <div class="item"><strong>MonsterCharacter:</strong> Monster variants tied to character schema.</div>
+          </div>
+        </details>
+
+        <details>
+          <summary>Stat tables, growth curves, and race limitations</summary>
+          <ul class="list">
+            <li class="item"><strong>Baselines:</strong> Keep early levels forgiving; avoid steep early spikes.</li>
+            <li class="item"><strong>Growth:</strong> Use smooth, monotonic progressions; watch secondary stats.</li>
+            <li class="item"><strong>Race rules:</strong> Respect unique caps and passives when rebalancing.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Editing EXP curve safely</summary>
+          <ul class="list">
+            <li class="item"><strong>Version:</strong> Duplicate files and tag with date + change note.</li>
+            <li class="item"><strong>Delta-first:</strong> Edit small increments; test midgame levels.</li>
+            <li class="item"><strong>Cross-check:</strong> Ensure quests, drops, and map difficulty align.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Rebalancing classes & monsters</summary>
+          <ul class="list">
+            <li class="item"><strong>Role clarity:</strong> Define each class’s niche before editing numbers.</li>
+            <li class="item"><strong>Counterplay:</strong> Keep at least two soft counters per dominant role.</li>
+            <li class="item"><strong>Trial builds:</strong> Sandbox with 5–10% adjustments; avoid compounding buffs.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Common bugs & how to avoid them</summary>
+          <ul class="list">
+            <li class="item"><strong>ID collisions:</strong> Track IDs in a single source; never reuse silently.</li>
+            <li class="item"><strong>Null refs:</strong> Validate links from Class → SkillForce → ItemSetEffect.</li>
+            <li class="item"><strong>Curve breaks:</strong> Watch for EXP gaps or negative thresholds.</li>
+          </ul>
+        </details>
+
+        <blockquote>
+          Tip: keep a lightweight changelog next to your data files. Note the file, sheet, cell range, and intent for every edit.
+        </blockquote>
+
+        <details>
+          <summary>Sample workflow snippet</summary>
+          <pre><code># Example: safe edit loop (pseudo)
+1. Backup Character.edf → Character.edf.bak
+2. Edit EXP sheet (Levels 10–20) by +4–6%
+3. Repack → validate IDs and references
+4. Reload server in staging → run scripted tests
+5. Log diffs → playtest for 30 minutes across 3 classes
+6. If stable: tag build, deploy to live during low traffic
+</code></pre>
+        </details>
+      </section>
+
+      <!-- Friendly notes -->
+      <section aria-labelledby="friendly-notes">
+        <h2 id="friendly-notes">Friendly guidance and safety</h2>
+        <p class="kicker">Small, steady changes beat big swings. Your players feel pacing shifts instantly—opt for clarity and control.</p>
+        <ul class="list">
+          <li class="item"><strong>Backups:</strong> Always keep last-known-good and a test branch.</li>
+          <li class="item"><strong>Diffs:</strong> Review changes with teammates before repack.</li>
+          <li class="item"><strong>Rollbacks:</strong> Prepare a one-click revert path for live incidents.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="wrap">
+    <span class="badge bright">You got this — iterate, test, and keep it fair.</span>
+    <p>© Emaydev. Built for creators who care about balance, clarity, and player trust.</p>
+  </footer>
+
+  <script>
+    // Minimal client-side search: toggles open details that match the query
+    const q = document.getElementById('q');
+    const btn = document.getElementById('searchBtn');
+    const sections = Array.from(document.querySelectorAll('details'));
+
+    function doSearch() {
+      const term = (q.value || '').trim().toLowerCase();
+      if (!term) {
+        sections.forEach(d => d.open = false);
+        return;
+      }
+      let matches = 0;
+      sections.forEach(d => {
+        const text = d.textContent.toLowerCase();
+        const hit = text.includes(term);
+        d.open = hit;
+        if (hit) matches++;
+      });
+      btn.textContent = matches ? `Found ${matches}` : 'No matches';
+    }
+    btn.addEventListener('click', doSearch);
+    q.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+  </script>
+</body>
+</html>
