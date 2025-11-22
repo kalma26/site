@@ -8,23 +8,47 @@
       font-family: Arial, sans-serif;
       background: #000; /* Black background */
       color: #fff;
-      text-align: center;
-      padding: 20px;
       margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
     }
     h1 {
-      margin-bottom: 15px;
-      font-size: 24px;
+      margin: 20px 0 10px 0;
+      font-size: 26px;
+      text-align: center;
+    }
+    p {
+      margin: 0 0 20px 0;
+    }
+    .button-bar {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
     }
     .converter {
-      background: #111; /* Dark panel */
-      padding: 20px;
-      margin: 20px auto;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,255,0,0.4);
-      width: 95%;
-      max-width: 400px;
+      background: #111;
+      padding: 25px;
+      margin: 15px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,255,0,0.4);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.5s ease, transform 0.5s ease;
       display: none;
+    }
+    .converter.show {
+      display: block;
+      opacity: 1;
+      transform: scale(1);
     }
     input {
       width: 100%;
@@ -35,6 +59,7 @@
       font-size: 18px;
       background: #222;
       color: #fff;
+      box-sizing: border-box;
     }
     button {
       width: 100%;
@@ -47,6 +72,7 @@
       color: #fff;
       font-weight: bold;
       font-size: 18px;
+      transition: background 0.3s;
     }
     button:hover {
       background: #0056b3;
@@ -74,10 +100,14 @@
     /* 📱 Mobile adjustments */
     @media (max-width: 600px) {
       h1 {
-        font-size: 20px;
+        font-size: 22px;
       }
       input, button {
         font-size: 20px;
+      }
+      .converter {
+        margin: 10px;
+        padding: 20px;
       }
     }
   </style>
@@ -87,8 +117,10 @@
   <p><strong>TEAM NEXUS</strong></p>
 
   <!-- Buttons -->
-  <button onclick="showConverter('buying')">Buying Convert</button>
-  <button onclick="showConverter('selling')">Selling Convert</button>
+  <div class="button-bar">
+    <button onclick="showConverter('buying')">Buying Convert</button>
+    <button onclick="showConverter('selling')">Selling Convert</button>
+  </div>
 
   <!-- Buying Converter -->
   <div id="buying" class="converter">
@@ -120,9 +152,19 @@
 
   <script>
     function showConverter(type) {
-      document.getElementById('buying').style.display = 'none';
-      document.getElementById('selling').style.display = 'none';
-      document.getElementById(type).style.display = 'block';
+      // Hide both
+      document.getElementById('buying').classList.remove('show');
+      document.getElementById('selling').classList.remove('show');
+
+      // Delay to allow fade-out before fade-in
+      setTimeout(() => {
+        document.getElementById('buying').style.display = 'none';
+        document.getElementById('selling').style.display = 'none';
+
+        let el = document.getElementById(type);
+        el.style.display = 'block';
+        setTimeout(() => el.classList.add('show'), 50);
+      }, 200);
     }
 
     function cleanNumber(value) {
