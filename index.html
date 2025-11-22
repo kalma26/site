@@ -28,6 +28,7 @@
       margin: 8px 0;
       border: 1px solid #ccc;
       border-radius: 4px;
+      font-size: 16px;
     }
     button {
       padding: 10px 15px;
@@ -38,6 +39,7 @@
       background: #007BFF;
       color: #fff;
       font-weight: bold;
+      font-size: 16px;
     }
     button:hover {
       background: #0056b3;
@@ -49,6 +51,23 @@
       background: #e9ecef;
       font-weight: bold;
       text-align: center;
+    }
+
+    /* 📱 Mobile Mode */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .converter {
+        width: 95%;
+      }
+      input, button {
+        width: 100%;
+        font-size: 18px;
+      }
+      h1 {
+        font-size: 22px;
+      }
     }
   </style>
 </head>
@@ -123,8 +142,20 @@
       resultField.select();
       resultField.setSelectionRange(0, 99999); // for mobile
       navigator.clipboard.writeText(resultField.value).then(() => {
-        alert("Result copied to clipboard!");
+        // ✅ Less intrusive confirmation
+        let btn = resultField.nextElementSibling;
+        btn.textContent = "Copied!";
+        setTimeout(() => btn.textContent = "Copy", 1500);
       });
+    }
+
+    // 🖥️📱 Auto detect mode
+    window.onload = function() {
+      if (/Mobi|Android/i.test(navigator.userAgent)) {
+        document.body.style.background = "#e0f7fa"; // light teal for mobile
+      } else {
+        document.body.style.background = "#f4f4f4"; // default for web
+      }
     }
   </script>
 </body>
