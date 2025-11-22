@@ -1,209 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Emay Tutorial Series — Complete Server Data Editing Guide</title>
+  <meta charset="UTF-8">
+  <title>RFOnline Price Converter | TEAM NEXUS</title>
   <style>
-    /* Theme: dark background + green text */
-    :root {
-      --bg: #000;
-      --surface: #0f0f0f;
-      --surface-2: #121212;
-      --green: #00ff00;
-      --green-soft: #66ff66;
-    }
-
-    /* Base */
-    * { box-sizing: border-box; }
     body {
-      background: var(--bg);
-      color: var(--green);
-      font-family: Arial, Helvetica, sans-serif;
-      line-height: 1.6;
-      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 30px;
     }
-    a { color: var(--green); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-
-    /* Layout */
-    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
-    header, main, footer { padding: 16px; }
-
-    /* Headings */
-    h1, h2 { margin: 8px 0 12px; }
-    h1 { font-size: clamp(24px, 5vw, 36px); }
-    h2 { font-size: clamp(18px, 3.5vw, 26px); }
-    .kicker { color: var(--green-soft); margin: 6px 0 14px; }
-
-    /* Sections */
-    section {
-      background: var(--surface);
-      border: 1px solid var(--green);
-      border-radius: 10px;
-      padding: 14px;
-      margin: 12px 0;
+    h1 {
+      margin-bottom: 20px;
     }
-
-    /* Lists */
-    ul { list-style: none; padding: 0; margin: 0; }
-    li {
-      background: var(--surface-2);
-      border: 1px solid var(--green);
+    .converter {
+      background: #fff;
+      padding: 20px;
+      margin: 20px auto;
       border-radius: 8px;
-      padding: 10px 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+      display: none;
+    }
+    input {
+      width: 90%;
+      padding: 8px;
       margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
-    .sub {
-      margin-top: 8px;
-      border-left: 2px solid var(--green);
-      padding-left: 10px;
-      color: var(--green-soft);
+    button {
+      padding: 10px 15px;
+      margin: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #007BFF;
+      color: #fff;
+      font-weight: bold;
     }
-
-    /* Footer */
-    footer { text-align: center; color: var(--green-soft); }
-
-    /* Mobile friendliness */
-    @media (min-width: 768px) {
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
+    button:hover {
+      background: #0056b3;
+    }
+    .result-box {
+      margin-top: 15px;
+    }
+    .result-box input {
+      background: #e9ecef;
+      font-weight: bold;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <header class="wrap">
-    <h1>Emay Tutorial Series</h1>
-    <p class="kicker">Complete Server Data Editing Guide — Step-by-Step Flow</p>
-  </header>
+  <h1>RFOnline Price Converter</h1>
+  <p><strong>TEAM NEXUS</strong></p>
 
-  <main class="wrap">
-    <section>
-      <h2>1. Introduction to the Server Data Structure</h2>
-      <ul>
-        <li>What these folders contain</li>
-        <li>How the server reads / loads them</li>
-        <li>Understanding .edf and Excel data types</li>
-        <li class="sub">A foundation episode explaining the entire system layout.</li>
-      </ul>
-    </section>
+  <!-- Buttons -->
+  <button onclick="showConverter('buying')">Buying Convert</button>
+  <button onclick="showConverter('selling')">Selling Convert</button>
 
-    <section>
-      <h2>2. Character & Player Essentials</h2>
-      <ul>
-        <li>Character.edf overview</li>
-        <li>PlayerCharacter.edf basics</li>
-        <li>Classes, stats, growth, attribute scaling</li>
-        <li class="sub">Teach how players are defined and how stats are controlled.</li>
-      </ul>
-    </section>
+  <!-- Buying Converter -->
+  <div id="buying" class="converter">
+    <h2>Buying Price Converter</h2>
+    <input type="text" id="buyPrice" placeholder="Game price">
+    <input type="text" id="buyTax" placeholder="Tax (e.g. 0.1 for 10%)">
+    <input type="text" id="buyPcs" placeholder="Item pcs">
+    <button onclick="calculateBuying()">Convert</button>
+    <div class="result-box">
+      <label>Result:</label><br>
+      <input type="text" id="buyResult" readonly>
+      <button onclick="copyResult('buyResult')">Copy</button>
+    </div>
+  </div>
 
-    <section>
-      <h2>3. Maps & World Configuration</h2>
-      <ul>
-        <li>Map.edf</li>
-        <li>Resource.edf (spawn tables, resource nodes, world objects)</li>
-        <li class="sub">Show how world data is structured and linked.</li>
-      </ul>
-    </section>
+  <!-- Selling Converter -->
+  <div id="selling" class="converter">
+    <h2>Selling Price Converter</h2>
+    <input type="text" id="sellPrice" placeholder="Game price">
+    <input type="text" id="sellTax" placeholder="Tax (e.g. 0.9 for 10%)">
+    <input type="text" id="sellPcs" placeholder="Item pcs">
+    <button onclick="calculateSelling()">Convert</button>
+    <div class="result-box">
+      <label>Result:</label><br>
+      <input type="text" id="sellResult" readonly>
+      <button onclick="copyResult('sellResult')">Copy</button>
+    </div>
+  </div>
 
-    <section>
-      <h2>4. Items System</h2>
-      <ul>
-        <li>Item.edf — Base item definitions</li>
-        <li>ItemPremium.edf</li>
-        <li>ItemCash.edf</li>
-        <li>ItemCombine.edf (crafting)</li>
-        <li>ItemSetEffect.edf (set bonuses)</li>
-        <li>ItemTimer.edf (timed items)</li>
-        <li>Store.edf (NPC shops)</li>
-        <li class="sub">A deep multi-part series covering how items are built.</li>
-      </ul>
-    </section>
+  <script>
+    function showConverter(type) {
+      document.getElementById('buying').style.display = 'none';
+      document.getElementById('selling').style.display = 'none';
+      document.getElementById(type).style.display = 'block';
+    }
 
-    <section>
-      <h2>5. Skills & Combat Logic</h2>
-      <ul>
-        <li>SkillForce.edf</li>
-        <li>CheckPotionEffect.xlsx</li>
-        <li>Damage formulas, buff logic, interactions</li>
-        <li class="sub">Explain skill behavior and how formulas actually calculate damage.</li>
-      </ul>
-    </section>
+    function cleanNumber(value) {
+      return parseFloat(value.replace(/,/g, '')) || 0;
+    }
 
-    <section>
-      <h2>6. Quests & Game Progression</h2>
-      <ul>
-        <li>Quest.edf</li>
-        <li>EventShip.xlsx / MsgEvent.xlsx</li>
-        <li class="sub">Define how quests, mission chains, and event triggers work.</li>
-      </ul>
-    </section>
+    function calculateBuying() {
+      let num1 = cleanNumber(document.getElementById('buyPrice').value);
+      let mid = parseFloat(document.getElementById('buyTax').value);
+      let num2 = cleanNumber(document.getElementById('buyPcs').value);
 
-    <section>
-      <h2>7. Monster System</h2>
-      <ul>
-        <li>ItemLooting.xlsx — Drop tables</li>
-        <li>Schedule.xlsx — Spawn times</li>
-        <li>MobMessage.xlsx — Boss announcements</li>
-        <li class="sub">Teach monster behavior, drops, and scheduling.</li>
-      </ul>
-    </section>
+      let result = Math.floor(num1 / (1 + mid) * num2);
+      document.getElementById('buyResult').value = result;
+    }
 
-    <section>
-      <h2>8. Grades & Leveling System</h2>
-      <ul>
-        <li>Grade.xlsx — Rank tiers</li>
-        <li>Leveling and power scaling</li>
-        <li class="sub">Show how power progression ties together.</li>
-      </ul>
-    </section>
+    function calculateSelling() {
+      let num1 = cleanNumber(document.getElementById('sellPrice').value);
+      let mid = parseFloat(document.getElementById('sellTax').value);
+      let num2 = cleanNumber(document.getElementById('sellPcs').value);
 
-    <section>
-      <h2>9. Language Localization</h2>
-      <ul>
-        <li>Language.xlsx — Items, NPCs, UI text</li>
-        <li class="sub">Useful for custom servers, branding, and translation.</li>
-      </ul>
-    </section>
+      let mul = num1 * 2;
+      let result = Math.floor(mul / mid / num2);
+      document.getElementById('sellResult').value = result;
+    }
 
-    <section>
-      <h2>10. Config Folder</h2>
-      <ul>
-        <li>Server-wide settings</li>
-        <li>EXP rates, drop rates, system toggles</li>
-        <li class="sub">Critical tuning for balancing your custom server.</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>11. Integration & Testing</h2>
-      <ul>
-        <li>Repacking / reloading .edf files</li>
-        <li>Error prevention</li>
-        <li>Testing changes safely</li>
-        <li class="sub">Final episode ensuring stable deployment.</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Phase I — Character.edf Deep-Dive Tutorial Series</h2>
-      <ul>
-        <li>Understanding each sheet (Action, Animus, Class, Exp, Grade, MasteryLimData, MonsterCharacter)</li>
-        <li>Stat tables, growth curves, race limitations</li>
-        <li>Editing EXP curve safely</li>
-        <li>Rebalancing classes & monsters</li>
-        <li>Common bugs & how to avoid them</li>
-        <li class="sub">A complete walkthrough dedicated to mastering Character.edf editing.</li>
-      </ul>
-    </section>
-  </main>
-
-  <footer class="wrap">
-    <p>Emay — Professional Server Editing Tutorials</p>
-  </footer>
+    function copyResult(id) {
+      let resultField = document.getElementById(id);
+      resultField.select();
+      resultField.setSelectionRange(0, 99999); // for mobile
+      navigator.clipboard.writeText(resultField.value).then(() => {
+        alert("Result copied to clipboard!");
+      });
+    }
+  </script>
 </body>
 </html>
