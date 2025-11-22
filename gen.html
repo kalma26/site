@@ -3,406 +3,149 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Prompt-based Image Generator</title>
-  <meta name="description" content="Generate images from a text prompt using the Unsplash source API." />
+  <title>MP3 Converter (Client-side)</title>
+  <meta name="description" content="Convert your own audio/video files to MP3 in the browser using FFmpeg.wasm." />
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #22c55e;
-      --accent-2: #3b82f6;
-      --danger: #ef4444;
-      --border: #1f2937;
+      --bg: #0f172a; --panel: #111827; --text: #e5e7eb; --muted: #9ca3af;
+      --accent: #22c55e; --accent-2: #3b82f6; --border: #1f2937;
     }
     * { box-sizing: border-box }
-    html, body { height: 100% }
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: radial-gradient(1200px 800px at 10% 10%, #0b1229, var(--bg));
-      color: var(--text);
-      display: grid;
-      place-items: center;
-      padding: 24px;
+      color: var(--text); min-height: 100vh; display: grid; place-items: center; padding: 24px;
     }
     .app {
-      width: 100%;
-      max-width: 980px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)),
-                  var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      overflow: hidden;
+      width: 100%; max-width: 900px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
     }
-    header {
-      padding: 18px 22px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .logo {
-      width: 34px; height: 34px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent-2), var(--accent));
-      display: grid; place-items: center;
-      color: white; font-weight: 700;
-      box-shadow: 0 6px 16px rgba(34,197,94,0.25);
-    }
-    h1 {
-      margin: 0;
-      font-size: 18px;
-      letter-spacing: 0.2px;
-    }
-    main {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 0;
-    }
-    @media (max-width: 900px) {
-      main { grid-template-columns: 1fr }
-      .side { border-left: none; border-top: 1px solid var(--border) }
-    }
-    .panel {
-      padding: 20px;
-    }
-    .prompt-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0b1229;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    input[type="text"]::placeholder { color: var(--muted) }
-    input[type="text"]:focus {
-      border-color: var(--accent-2);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    header, footer { padding: 16px 20px; border-bottom: 1px solid var(--border) }
+    footer { border-top: 1px solid var(--border); border-bottom: none; color: var(--muted); font-size: 12px }
+    h1 { margin: 0; font-size: 20px; letter-spacing: 0.2px }
+    .panel { padding: 18px 20px }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center }
+    input[type="file"] {
+      width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: #0b1229; color: var(--text);
     }
     button {
-      appearance: none;
-      border: 1px solid var(--border);
-      background: #0b1229;
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: transform 0.02s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      appearance: none; border: 1px solid var(--border); background: #0b1229; color: var(--text);
+      padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
     }
-    button:hover { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(59,130,246,0.15) }
-    button:active { transform: translateY(1px) }
-    .btn-primary {
-      background: linear-gradient(180deg, #1d4ed8, #1e40af);
-      border-color: #1e40af;
-      box-shadow: 0 8px 18px rgba(29,78,216,0.35);
+    .btn-primary { background: linear-gradient(180deg, #16a34a, #15803d); border-color: #15803d }
+    .btn-secondary { background: linear-gradient(180deg, #1d4ed8, #1e40af); border-color: #1e40af }
+    .status { margin-top: 12px; font-size: 13px; color: var(--muted) }
+    .out-wrap {
+      margin-top: 14px; border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: #0b1229;
     }
-    .btn-accent {
-      background: linear-gradient(180deg, #16a34a, #15803d);
-      border-color: #15803d;
-      box-shadow: 0 8px 18px rgba(22,163,74,0.35);
-    }
-    .btn-ghost { background: transparent }
-    .img-wrap {
-      position: relative;
-      display: grid;
-      place-items: center;
-      min-height: 420px;
-      background: conic-gradient(from 180deg at 50% 50%, #0b1229, #0c1633, #0b1229);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-    }
-    .img-wrap img {
-      max-width: 100%;
-      max-height: 70vh;
-      border-radius: 8px;
-    }
-    .placeholder {
-      color: var(--muted);
-      text-align: center;
-      padding: 40px 20px;
-    }
-    .status {
-      margin-top: 12px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .tools {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-    .side {
-      border-left: 1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-    }
-    .section-title {
-      font-size: 14px;
-      color: var(--muted);
-      letter-spacing: 0.3px;
-      margin: 0 0 10px;
-      text-transform: uppercase;
-    }
-    .history {
-      display: grid;
-      gap: 10px;
-      max-height: 520px;
-      overflow: auto;
-      padding-right: 6px;
-    }
-    .hist-item {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #0b1229;
-    }
-    .hist-item .prompt {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text);
-    }
-    .hist-item .actions {
-      display: flex;
-      gap: 6px;
-    }
-    .sr-only {
-      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-    }
-    footer {
-      padding: 14px 22px;
-      border-top: 1px solid var(--border);
-      color: var(--muted);
-      font-size: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    a { color: var(--accent-2); text-decoration: none }
-    a:hover { text-decoration: underline }
+    audio { width: 100%; margin-top: 8px }
+    .tips { margin-top: 10px; font-size: 12px; color: var(--muted) }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0 }
   </style>
 </head>
 <body>
-  <div class="app" role="application" aria-label="Prompt-based Image Generator">
+  <div class="app" role="application" aria-label="MP3 Converter">
     <header>
-      <div class="logo" aria-hidden="true">IG</div>
-      <h1>Prompt-based Image Generator</h1>
+      <h1>MP3 Converter (Client-side)</h1>
     </header>
 
-    <main>
-      <section class="panel">
-        <form id="promptForm" class="prompt-row" autocomplete="off">
-          <label class="sr-only" for="promptInput">Prompt</label>
-          <input id="promptInput" type="text" name="prompt" placeholder="e.g., generate happy picture" minlength="2" required />
-          <button type="submit" class="btn-primary">Generate</button>
-          <button type="button" id="clearBtn" class="btn-ghost">Clear</button>
-        </form>
+    <section class="panel">
+      <div class="row">
+        <label for="fileInput" class="sr-only">Select file</label>
+        <input id="fileInput" type="file" accept=".mp4,.mov,.mkv,.webm,.mp3,.wav,.m4a,.aac" />
+        <button id="convertBtn" class="btn-primary">Convert to MP3</button>
+      </div>
+      <div class="status" id="status">Ready.</div>
 
-        <div class="img-wrap" id="imageArea" aria-live="polite">
-          <div class="placeholder" id="placeholder">
-            <p>Enter a prompt and click Generate.<br />Examples: “happy sunset”, “cyberpunk city at night”, “tropical beach”.</p>
-          </div>
-          <img id="resultImg" alt="" hidden />
-        </div>
+      <div class="out-wrap" id="output" hidden>
+        <strong>Output:</strong>
+        <div id="downloadArea"></div>
+        <audio id="audioPlayer" controls></audio>
+      </div>
 
-        <div class="tools" aria-label="Image tools">
-          <button type="button" id="downloadBtn" class="btn-accent" disabled>Download</button>
-          <button type="button" id="copyUrlBtn" class="btn-ghost" disabled>Copy image URL</button>
-          <button type="button" id="openNewBtn" class="btn-ghost" disabled>Open in new tab</button>
-        </div>
-
-        <div class="status" id="status" aria-live="polite">Ready.</div>
-      </section>
-
-      <aside class="panel side">
-        <h2 class="section-title">History</h2>
-        <div class="history" id="historyList" aria-label="Prompt history"></div>
-      </aside>
-    </main>
+      <div class="tips">
+        <p>• Works entirely in your browser using WebAssembly (FFmpeg.wasm). No uploads, no servers.</p>
+        <p>• Only convert files you own or have permission to use.</p>
+      </div>
+    </section>
 
     <footer>
-      <div>Images fetched from Unsplash Source based on your prompt.</div>
-      <div><a href="https://source.unsplash.com/" target="_blank" rel="noopener">Unsplash Source API</a></div>
+      <div>Powered by FFmpeg.wasm (MIT). Runs on GitHub Pages.</div>
+      <div><a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener">FFmpeg.wasm</a></div>
     </footer>
   </div>
 
+  <!-- FFmpeg.wasm via unpkg CDN -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
   <script>
-    // Utilities
-    const $ = (sel) => document.querySelector(sel);
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    const $ = (s) => document.querySelector(s);
     const statusEl = $('#status');
-    const imgEl = $('#resultImg');
-    const placeholderEl = $('#placeholder');
-    const historyEl = $('#historyList');
-    const downloadBtn = $('#downloadBtn');
-    const copyUrlBtn = $('#copyUrlBtn');
-    const openNewBtn = $('#openNewBtn');
+    const fileInput = $('#fileInput');
+    const convertBtn = $('#convertBtn');
+    const outputWrap = $('#output');
+    const audioPlayer = $('#audioPlayer');
+    const downloadArea = $('#downloadArea');
 
-    function setStatus(text) {
-      statusEl.textContent = text;
+    function setStatus(t) { statusEl.textContent = t; }
+    function safeName(name) { return name.replace(/[^a-z0-9._-]+/gi, '_'); }
+
+    async function ensureFFmpegLoaded() {
+      if (!ffmpeg.isLoaded()) {
+        setStatus('Loading converter (first time may take 10–20s)...');
+        await ffmpeg.load();
+        setStatus('Converter ready.');
+      }
     }
 
-    function enableTools(enabled) {
-      [downloadBtn, copyUrlBtn, openNewBtn].forEach(b => b.disabled = !enabled);
-    }
-
-    function promptToQuery(prompt) {
-      // Strip leading verbs like "generate", "create", "make", to keep query clean
-      const cleaned = prompt
-        .trim()
-        .replace(/^(generate|create|make|produce)\s+/i, '')
-        .replace(/\s+/g, ' ')
-        .toLowerCase();
-      return encodeURIComponent(cleaned || prompt.trim());
-    }
-
-    function buildImageUrl(prompt) {
-      // Unsplash Source: featured image for query; add sig to avoid caching
-      const query = promptToQuery(prompt);
-      const sig = Math.floor(Math.random() * 1e9);
-      return `https://source.unsplash.com/featured/?${query}&sig=${sig}`;
-    }
-
-    async function fetchImage(url) {
-      // Preload the image to handle loading state and errors
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('Image failed to load'));
-        img.src = url;
-      });
-    }
-
-    function updateImage(img, prompt, url) {
-      placeholderEl.hidden = true;
-      imgEl.hidden = false;
-      imgEl.src = url;
-      imgEl.alt = prompt;
-      enableTools(true);
-      setStatus(`Generated image for: "${prompt}"`);
-    }
-
-    function addHistoryItem(prompt, url) {
-      const item = document.createElement('div');
-      item.className = 'hist-item';
-      item.innerHTML = `
-        <div class="prompt" title="${prompt}">${prompt}</div>
-        <div class="actions">
-          <button type="button" class="btn-ghost" data-url="${url}" data-prompt="${prompt}">View</button>
-          <button type="button" class="btn-ghost copy" data-url="${url}">Copy URL</button>
-        </div>
-      `;
-      historyEl.prepend(item);
-      item.querySelector('button[data-url]').addEventListener('click', (e) => {
-        const u = e.currentTarget.getAttribute('data-url');
-        const p = e.currentTarget.getAttribute('data-prompt');
-        imgEl.src = u;
-        imgEl.alt = p;
-        placeholderEl.hidden = true;
-        imgEl.hidden = false;
-        enableTools(true);
-        setStatus(`Viewing: "${p}"`);
-      });
-      item.querySelector('button.copy').addEventListener('click', async (e) => {
-        const u = e.currentTarget.getAttribute('data-url');
-        await navigator.clipboard.writeText(u).catch(() => {});
-        setStatus('Image URL copied to clipboard.');
-      });
-    }
-
-    async function handleGenerate(prompt) {
-      if (!prompt || prompt.trim().length < 2) {
-        setStatus('Please enter a longer prompt.');
+    convertBtn.addEventListener('click', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) {
+        setStatus('Please select a file to convert.');
         return;
       }
-      const url = buildImageUrl(prompt);
-      setStatus('Loading image...');
-      enableTools(false);
-
       try {
-        const img = await fetchImage(url);
-        updateImage(img, prompt, url);
-        addHistoryItem(prompt, url);
-      } catch (err) {
-        console.error(err);
-        placeholderEl.hidden = false;
-        imgEl.hidden = true;
-        setStatus('Failed to load image. Try a different prompt or retry.');
-      }
-    }
+        convertBtn.disabled = true;
+        await ensureFFmpegLoaded();
 
-    // Form events
-    $('#promptForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const prompt = $('#promptInput').value;
-      await handleGenerate(prompt);
-    });
+        const inName = safeName(file.name);
+        const base = inName.replace(/\.[^.]+$/, '');
+        const outName = base + '.mp3';
 
-    $('#clearBtn').addEventListener('click', () => {
-      $('#promptInput').value = '';
-      setStatus('Prompt cleared.');
-      $('#promptInput').focus();
-    });
+        setStatus('Reading file...');
+        ffmpeg.FS('writeFile', inName, await fetchFile(file));
 
-    // Tool actions
-    downloadBtn.addEventListener('click', async () => {
-      if (!imgEl.src) return;
-      setStatus('Preparing download...');
-      try {
-        const resp = await fetch(imgEl.src, { mode: 'cors' });
-        const blob = await resp.blob();
+        // -vn: drop video, -ac 2: stereo, -ar 44100: sample rate, -b:a 192k: bitrate
+        setStatus('Converting to MP3...');
+        await ffmpeg.run('-i', inName, '-vn', '-ac', '2', '-ar', '44100', '-b:a', '192k', outName);
+
+        setStatus('Preparing output...');
+        const data = ffmpeg.FS('readFile', outName);
+        const blob = new Blob([data.buffer], { type: 'audio/mpeg' });
         const url = URL.createObjectURL(blob);
+
+        audioPlayer.src = url;
+        outputWrap.hidden = false;
+
+        // Download link
         const a = document.createElement('a');
         a.href = url;
-        const ts = new Date().toISOString().replace(/[:.]/g, '-');
-        a.download = `image-${ts}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        setStatus('Downloaded image.');
-      } catch {
-        // Fallback: open in new tab for manual save
-        window.open(imgEl.src, '_blank', 'noopener');
-        setStatus('Opened image in new tab (download fallback).');
+        a.download = outName;
+        a.textContent = 'Download MP3';
+        a.className = 'btn-secondary';
+        downloadArea.innerHTML = '';
+        downloadArea.appendChild(a);
+
+        setStatus('Done. MP3 ready.');
+      } catch (err) {
+        console.error(err);
+        setStatus('Conversion failed. Try another file or reload the page.');
+      } finally {
+        convertBtn.disabled = false;
       }
-    });
-
-    copyUrlBtn.addEventListener('click', async () => {
-      if (!imgEl.src) return;
-      await navigator.clipboard.writeText(imgEl.src).catch(() => {});
-      setStatus('Image URL copied to clipboard.');
-    });
-
-    openNewBtn.addEventListener('click', () => {
-      if (!imgEl.src) return;
-      window.open(imgEl.src, '_blank', 'noopener');
-      setStatus('Image opened in a new tab.');
-    });
-
-    // Example default
-    window.addEventListener('DOMContentLoaded', () => {
-      const example = 'generate happy picture';
-      $('#promptInput').value = example;
     });
   </script>
 </body>
