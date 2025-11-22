@@ -3,27 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MP3 Converter (Client-side)</title>
-  <meta name="description" content="Convert your own audio/video files to MP3 in the browser using FFmpeg.wasm." />
+  <title>PNG → DDS Converter</title>
+  <meta name="description" content="Convert PNG to DDS (uncompressed A8R8G8B8) directly in your browser. Mobile-friendly and runs on GitHub Pages." />
   <style>
     :root {
       --bg: #0f172a; --panel: #111827; --text: #e5e7eb; --muted: #9ca3af;
       --accent: #22c55e; --accent-2: #3b82f6; --border: #1f2937;
     }
     * { box-sizing: border-box }
+    html, body { height: 100% }
     body {
       margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: radial-gradient(1200px 800px at 10% 10%, #0b1229, var(--bg));
-      color: var(--text); min-height: 100vh; display: grid; place-items: center; padding: 24px;
+      color: var(--text); display: grid; place-items: center; padding: 20px;
     }
     .app {
-      width: 100%; max-width: 900px; background: var(--panel); border: 1px solid var(--border);
-      border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      width: 100%; max-width: 900px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35); overflow: hidden;
     }
-    header, footer { padding: 16px 20px; border-bottom: 1px solid var(--border) }
-    footer { border-top: 1px solid var(--border); border-bottom: none; color: var(--muted); font-size: 12px }
-    h1 { margin: 0; font-size: 20px; letter-spacing: 0.2px }
+    header, footer { padding: 16px 20px }
+    header { border-bottom: 1px solid var(--border) }
+    footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 12px }
+    h1 { margin: 0; font-size: 20px }
     .panel { padding: 18px 20px }
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr }
+    }
+    .card {
+      border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: #0b1229;
+    }
     .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center }
     input[type="file"] {
       width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
@@ -33,119 +45,252 @@
       appearance: none; border: 1px solid var(--border); background: #0b1229; color: var(--text);
       padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
     }
-    .btn-primary { background: linear-gradient(180deg, #16a34a, #15803d); border-color: #15803d }
-    .btn-secondary { background: linear-gradient(180deg, #1d4ed8, #1e40af); border-color: #1e40af }
-    .status { margin-top: 12px; font-size: 13px; color: var(--muted) }
-    .out-wrap {
-      margin-top: 14px; border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: #0b1229;
+    .btn-primary {
+      background: linear-gradient(180deg, #16a34a, #15803d); border-color: #15803d;
+      box-shadow: 0 8px 18px rgba(22,163,74,0.35);
     }
-    audio { width: 100%; margin-top: 8px }
-    .tips { margin-top: 10px; font-size: 12px; color: var(--muted) }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0 }
+    .btn-ghost { background: transparent }
+    .status { margin-top: 10px; font-size: 13px; color: var(--muted) }
+    .preview {
+      display: grid; place-items: center; min-height: 220px;
+      border: 1px dashed var(--border); border-radius: 10px; overflow: hidden;
+      background: conic-gradient(from 180deg at 50% 50%, #0b1229, #0c1633, #0b1229);
+    }
+    .preview img { max-width: 100%; height: auto }
+    .out {
+      display: grid; gap: 8px; align-items: center;
+      grid-template-columns: 1fr auto; margin-top: 12px;
+    }
+    .hint { font-size: 12px; color: var(--muted) }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
   </style>
 </head>
 <body>
-  <div class="app" role="application" aria-label="MP3 Converter">
+  <div class="app" role="application" aria-label="PNG to DDS Converter">
     <header>
-      <h1>MP3 Converter (Client-side)</h1>
+      <h1>PNG → DDS Converter</h1>
+      <div class="hint">Upload a PNG, click Convert, then download the DDS file. Mobile-friendly and runs fully in your browser.</div>
     </header>
 
     <section class="panel">
-      <div class="row">
-        <label for="fileInput" class="sr-only">Select file</label>
-        <input id="fileInput" type="file" accept=".mp4,.mov,.mkv,.webm,.mp3,.wav,.m4a,.aac" />
-        <button id="convertBtn" class="btn-primary">Convert to MP3</button>
-      </div>
-      <div class="status" id="status">Ready.</div>
+      <div class="grid">
+        <div class="card">
+          <div class="row">
+            <label class="sr-only" for="fileInput">Upload PNG</label>
+            <input id="fileInput" type="file" accept=".png,image/png" />
+            <button id="convertBtn" class="btn-primary">Convert</button>
+          </div>
+          <div class="status" id="status">Ready.</div>
 
-      <div class="out-wrap" id="output" hidden>
-        <strong>Output:</strong>
-        <div id="downloadArea"></div>
-        <audio id="audioPlayer" controls></audio>
-      </div>
+          <div class="preview" id="previewBox" aria-live="polite" style="margin-top: 12px;">
+            <span class="hint" id="placeholder">PNG preview will appear here.</span>
+            <img id="previewImg" alt="" hidden />
+          </div>
 
-      <div class="tips">
-        <p>• Works entirely in your browser using WebAssembly (FFmpeg.wasm). No uploads, no servers.</p>
-        <p>• Only convert files you own or have permission to use.</p>
+          <div class="out" id="outputBox" hidden>
+            <div class="hint">Conversion complete. Download below:</div>
+            <button id="downloadBtn" class="btn-primary">Download DDS</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Format details</strong>
+          <ul style="margin: 10px 0 0 18px;">
+            <li><span class="hint">DDS output is uncompressed A8R8G8B8 (32-bit with alpha). Widely supported by engines/tools.</span></li>
+            <li><span class="hint">Dimensions: same as input PNG. No mipmaps, no compression (DXT/BC) to keep it fast and browser-safe.</span></li>
+            <li><span class="hint">If you need DXT/BC compression or mipmaps, do that later in your pipeline (e.g., via desktop tools).</span></li>
+          </ul>
+        </div>
       </div>
     </section>
 
     <footer>
-      <div>Powered by FFmpeg.wasm (MIT). Runs on GitHub Pages.</div>
-      <div><a href="https://github.com/ffmpegwasm/ffmpeg.wasm" target="_blank" rel="noopener">FFmpeg.wasm</a></div>
+      <div>This converter runs entirely in your browser. Works on GitHub Pages and mobile devices.</div>
+      <div class="hint">Tip: Smaller images convert faster. Keep transparency if your PNG has it.</div>
     </footer>
   </div>
 
-  <!-- FFmpeg.wasm via unpkg CDN -->
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
   <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
-
     const $ = (s) => document.querySelector(s);
-    const statusEl = $('#status');
     const fileInput = $('#fileInput');
     const convertBtn = $('#convertBtn');
-    const outputWrap = $('#output');
-    const audioPlayer = $('#audioPlayer');
-    const downloadArea = $('#downloadArea');
+    const statusEl = $('#status');
+    const previewImg = $('#previewImg');
+    const previewBox = $('#previewBox');
+    const placeholder = $('#placeholder');
+    const outputBox = $('#outputBox');
+    const downloadBtn = $('#downloadBtn');
 
     function setStatus(t) { statusEl.textContent = t; }
-    function safeName(name) { return name.replace(/[^a-z0-9._-]+/gi, '_'); }
+    function safeBaseName(name) { return name.replace(/\.[^.]+$/, ''); }
 
-    async function ensureFFmpegLoaded() {
-      if (!ffmpeg.isLoaded()) {
-        setStatus('Loading converter (first time may take 10–20s)...');
-        await ffmpeg.load();
-        setStatus('Converter ready.');
+    // Show PNG preview
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (!file) {
+        previewImg.hidden = true;
+        placeholder.hidden = false;
+        setStatus('Ready.');
+        return;
       }
+      if (!file.type.includes('png')) {
+        setStatus('Please select a PNG file.');
+        previewImg.hidden = true;
+        placeholder.hidden = false;
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewImg.alt = file.name;
+      previewImg.hidden = false;
+      placeholder.hidden = true;
+      setStatus('PNG loaded. Click Convert to continue.');
+    });
+
+    // Build DDS header (128 bytes + pixel data)
+    function buildDDSHeader(width, height, pitch) {
+      const DDSD_CAPS = 0x00000001;
+      const DDSD_HEIGHT = 0x00000002;
+      const DDSD_WIDTH = 0x00000004;
+      const DDSD_PITCH = 0x00000008;
+      const DDSD_PIXELFORMAT = 0x00001000;
+
+      const DDPF_ALPHAPIXELS = 0x00000001;
+      const DDPF_RGB = 0x00000040;
+
+      const DDSCAPS_TEXTURE = 0x00001000;
+
+      const header = new ArrayBuffer(128);
+      const dv = new DataView(header);
+
+      // Magic 'DDS '
+      dv.setUint32(0, 0x20534444, true);
+
+      // DDS_HEADER
+      dv.setUint32(4, 124, true); // size
+      dv.setUint32(8, DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PITCH | DDSD_PIXELFORMAT, true); // flags
+      dv.setUint32(12, height, true); // height
+      dv.setUint32(16, width, true);  // width
+      dv.setUint32(20, pitch, true);  // pitch (bytes per row)
+      dv.setUint32(24, 0, true);      // depth (unused)
+      dv.setUint32(28, 0, true);      // mipmap count (none)
+
+      // reserved[11]
+      for (let i = 0; i < 11; i++) dv.setUint32(32 + i * 4, 0, true);
+
+      // DDS_PIXELFORMAT (starts at offset 76)
+      dv.setUint32(76, 32, true); // size
+      dv.setUint32(80, DDPF_RGB | DDPF_ALPHAPIXELS, true); // flags
+      dv.setUint32(84, 32, true); // RGB bit count
+      dv.setUint32(88, 0x00FF0000, true); // R mask
+      dv.setUint32(92, 0x0000FF00, true); // G mask
+      dv.setUint32(96, 0x000000FF, true); // B mask
+      dv.setUint32(100, 0xFF000000, true); // A mask
+
+      // caps
+      dv.setUint32(104, DDSCAPS_TEXTURE, true); // caps
+      dv.setUint32(108, 0, true); // caps2
+      dv.setUint32(112, 0, true); // caps3
+      dv.setUint32(116, 0, true); // caps4
+      dv.setUint32(120, 0, true); // reserved
+
+      return header;
+    }
+
+    // Convert PNG to DDS (A8R8G8B8, little-endian)
+    async function convertPNGtoDDS(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const w = img.naturalWidth;
+          const h = img.naturalHeight;
+
+          // Draw to canvas to get RGBA pixels
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          // Ensure alpha preserved
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0);
+
+          const imageData = ctx.getImageData(0, 0, w, h);
+          const src = imageData.data; // RGBA per pixel
+
+          const pitch = w * 4;
+          const header = buildDDSHeader(w, h, pitch);
+
+          // Pixel data: A8R8G8B8 (little-endian uint32 per pixel)
+          const pixelData = new ArrayBuffer(w * h * 4);
+          const dv = new DataView(pixelData);
+          let o = 0;
+          for (let i = 0; i < src.length; i += 4) {
+            const r = src[i];
+            const g = src[i + 1];
+            const b = src[i + 2];
+            const a = src[i + 3];
+            const argb = (a << 24) | (r << 16) | (g << 8) | b;
+            dv.setUint32(o, argb, true); // little-endian
+            o += 4;
+          }
+
+          // Combine header + pixels
+          const combined = new Uint8Array(128 + pixelData.byteLength);
+          combined.set(new Uint8Array(header), 0);
+          combined.set(new Uint8Array(pixelData), 128);
+
+          const blob = new Blob([combined], { type: 'application/octet-stream' });
+          resolve({ blob, width: w, height: h });
+        };
+        img.onerror = () => reject(new Error('Failed to load PNG'));
+        img.src = URL.createObjectURL(file);
+      });
     }
 
     convertBtn.addEventListener('click', async () => {
       const file = fileInput.files?.[0];
       if (!file) {
-        setStatus('Please select a file to convert.');
+        setStatus('Please upload a PNG file.');
+        return;
+      }
+      if (!file.type.includes('png')) {
+        setStatus('Selected file is not a PNG.');
         return;
       }
       try {
         convertBtn.disabled = true;
-        await ensureFFmpegLoaded();
+        setStatus('Converting…');
 
-        const inName = safeName(file.name);
-        const base = inName.replace(/\.[^.]+$/, '');
-        const outName = base + '.mp3';
+        const { blob, width, height } = await convertPNGtoDDS(file);
+        const ddsUrl = URL.createObjectURL(blob);
 
-        setStatus('Reading file...');
-        ffmpeg.FS('writeFile', inName, await fetchFile(file));
+        outputBox.hidden = false;
+        downloadBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = ddsUrl;
+          const base = safeBaseName(file.name);
+          a.download = `${base}_${width}x${height}.dds`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
 
-        // -vn: drop video, -ac 2: stereo, -ar 44100: sample rate, -b:a 192k: bitrate
-        setStatus('Converting to MP3...');
-        await ffmpeg.run('-i', inName, '-vn', '-ac', '2', '-ar', '44100', '-b:a', '192k', outName);
-
-        setStatus('Preparing output...');
-        const data = ffmpeg.FS('readFile', outName);
-        const blob = new Blob([data.buffer], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-
-        audioPlayer.src = url;
-        outputWrap.hidden = false;
-
-        // Download link
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = outName;
-        a.textContent = 'Download MP3';
-        a.className = 'btn-secondary';
-        downloadArea.innerHTML = '';
-        downloadArea.appendChild(a);
-
-        setStatus('Done. MP3 ready.');
+        setStatus(`Done. DDS ready (${width}×${height}, A8R8G8B8).`);
       } catch (err) {
         console.error(err);
-        setStatus('Conversion failed. Try another file or reload the page.');
+        setStatus('Conversion failed. Try another PNG or reload the page.');
       } finally {
         convertBtn.disabled = false;
       }
+    });
+
+    // Mobile: keep screen awake during convert (optional, safe fallback)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) setStatus('Paused. Return to tab to continue.');
+      else setStatus('Ready.');
     });
   </script>
 </body>
