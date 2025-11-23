@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BIN Viewer & Text Converter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg:#0f172a; --panel:#111827; --muted:#9ca3af; --text:#e5e7eb; --accent:#60a5fa; --ok:#10b981; --warn:#f59e0b;
+    --mono:"SFMono-Regular","Consolas","Liberation Mono",Menlo,monospace;
+  }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; }
+  header { padding:16px 24px; border-bottom:1px solid #1f2937; display:flex; justify-content:space-between; align-items:center; }
+  h1 { margin:0; font-size:18px; font-weight:600; }
+  .container { padding:16px; display:grid; gap:16px; grid-template-columns: 340px 1fr; }
+  .card { background:var(--panel); border:1px solid #1f2937; border-radius:12px; padding:16px; }
+  .label { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .drop { border:2px dashed #374151; border-radius:12px; padding:16px; text-align:center; transition:0.2s; }
+  .drop.drag { border-color:var(--accent); background:#0b1220; }
+  input[type=file] { display:none; }
+  button, select { background:#1f2937; color:var(--text); border:1px solid #374151; border-radius:10px; padding:8px 12px; font-size:14px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--accent); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .small { font-size:12px; color:var(--muted); }
+  .mono { font-family:var(--mono); white-space:pre; }
+  .pane { height:320px; overflow:auto; border:1px solid #1f2937; border-radius:8px; padding:12px; background:#0b1220; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .status { font-size:12px; color:var(--muted); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; border:1px solid #374151; }
+  .ok { color:var(--ok); border-color:var(--ok); }
+  .warn { color:var(--warn); border-color:var(--warn); }
+  .footer { padding:10px 16px; border-top:1px solid #1f2937; display:flex; justify-content:space-between; align-items:center; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>BIN Viewer & Text Converter</h1>
+    <div class="row">
+      <button id="downloadTxt" disabled>Download extracted text</button>
+      <button id="reset">Reset</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="label">Upload .bin file</div>
+      <div id="drop" class="drop">
+        <p class="small">Drag & drop your file here or</p>
+        <label for="fileInput"><button>Choose file</button></label>
+        <input id="fileInput" type="file" accept=".bin,.dat,.pack,*/*">
+      </div>
+
+      <div style="margin-top:12px;" class="row">
+        <div>
+          <div class="label">Decode mode</div>
+          <select id="decodeMode">
+            <option value="utf8">UTF-8 (try full decode)</option>
+            <option value="ascii">ASCII (0–127)</option>
+            <option value="strings">Extract printable strings</option>
+            <option value="hex">Hex + ASCII view</option>
+            <option value="dwords-le">Parse 32-bit integers (little-endian)</option>
+            <option value="dwords-be">Parse 32-bit integers (big-endian)</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">String min length</div>
+          <select id="minLen">
+            <option>4</option><option>6</option><option selected>8</option><option>12</option><option>16</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Row width (hex view)</div>
+          <select id="rowWidth">
+            <option>8</option><option selected>16</option><option>24</option><option>32</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;" class="row">
+        <button id="process" disabled>Process</button>
+        <span id="fileInfo" class="status"></span>
+      </div>
+
+      <div style="margin-top:12px;" class="row">
+        <span id="detectBadge" class="badge">No file</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Output</div>
+      <div id="output" class="pane mono"></div>
+    </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="label">Notes</div>
+      <div class="small">
+        <ul>
+          <li><b>UTF-8:</b> Attempts full decode. Binary data may contain invalid sequences; these are replaced.</li>
+          <li><b>ASCII:</b> Shows only characters 32–126; non-printables become dots.</li>
+          <li><b>Strings:</b> Extracts printable runs of at least the selected length, separated by new lines.</li>
+          <li><b>Hex view:</b> Classic hex dump with ASCII gutter.</li>
+          <li><b>Dwords:</b> Interprets the buffer as 32-bit unsigned integers; extra bytes at the end are ignored.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="small">All processing happens locally in your browser.</span>
+    <span class="small">Tip: If your game uses little-endian, prefer “Dwords (LE)”.</span>
+  </div>
+
+<script>
+(() => {
+  const fileInput = document.getElementById('fileInput');
+  const drop = document.getElementById('drop');
+  const processBtn = document.getElementById('process');
+  const output = document.getElementById('output');
+  const fileInfo = document.getElementById('fileInfo');
+  const decodeMode = document.getElementById('decodeMode');
+  const minLenSel = document.getElementById('minLen');
+  const rowWidthSel = document.getElementById('rowWidth');
+  const detectBadge = document.getElementById('detectBadge');
+  const downloadBtn = document.getElementById('downloadTxt');
+  const resetBtn = document.getElementById('reset');
+
+  let buffer = null;
+  let lastText = '';
+
+  function humanSize(bytes) {
+    const units = ['B','KB','MB','GB'];
+    let i = 0, val = bytes;
+    while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+    return `${val.toFixed(val < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
+  }
+
+  function updateBadge(arr) {
+    if (!arr) { detectBadge.textContent = 'No file'; detectBadge.className = 'badge'; return; }
+    // Simple heuristics
+    const len = arr.length;
+    let zeroCount = 0, printableCount = 0;
+    for (let i=0; i<Math.min(len, 2048); i++) {
+      const b = arr[i];
+      if (b === 0) zeroCount++;
+      if (b >= 32 && b <= 126) printableCount++;
+    }
+    const printableRatio = printableCount / Math.min(len, 2048);
+    if (printableRatio > 0.6) {
+      detectBadge.textContent = 'Likely text';
+      detectBadge.className = 'badge ok';
+    } else if (zeroCount > 100) {
+      detectBadge.textContent = 'Likely binary/structured';
+      detectBadge.className = 'badge warn';
+    } else {
+      detectBadge.textContent = 'Mixed content';
+      detectBadge.className = 'badge';
+    }
+  }
+
+  function toHex(n) { return n.toString(16).padStart(2, '0'); }
+  function chunk(arr, size) { const out=[]; for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size)); return out; }
+
+  function hexDump(arr, width=16) {
+    const lines = [];
+    for (let i=0; i<arr.length; i+=width) {
+      const slice = arr.slice(i, i+width);
+      const hex = slice.map(b => toHex(b)).join(' ');
+      const ascii = slice.map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
+      lines.push(`${i.toString(16).padStart(8,'0')}  ${hex.padEnd(width*3-1,' ')}  |${ascii}|`);
+    }
+    return lines.join('\n');
+  }
+
+  function decodeUTF8(buf) {
+    try {
+      return new TextDecoder('utf-8', { fatal: false }).decode(buf);
+    } catch {
+      return '(UTF-8 decode failed; try ASCII or Strings mode)';
+    }
+  }
+
+  function decodeASCII(arr) {
+    let s = '';
+    for (let i=0; i<arr.length; i++) {
+      const b = arr[i];
+      s += (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.';
+    }
+    return s;
+  }
+
+  function extractStrings(arr, minLen=8) {
+    const out = [];
+    let cur = [];
+    for (let i=0; i<arr.length; i++) {
+      const b = arr[i];
+      const ch = (b >= 32 && b <= 126) ? String.fromCharCode(b) : null;
+      if (ch) { cur.push(ch); } else {
+        if (cur.length >= minLen) out.push(cur.join(''));
+        cur = [];
+      }
+    }
+    if (cur.length >= minLen) out.push(cur.join(''));
+    return out.join('\n');
+  }
+
+  function parseDwords(arr, endian='le') {
+    const view = new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
+    const words = [];
+    const count = Math.floor(arr.byteLength / 4);
+    for (let i=0; i<count; i++) {
+      const val = view.getUint32(i*4, endian === 'le');
+      words.push(val);
+    }
+    const lines = words.map((v, idx) => `${idx.toString().padStart(6,' ')}: ${v}`);
+    return `Count: ${words.length}\n\n` + lines.join('\n');
+  }
+
+  function process() {
+    if (!buffer) return;
+    const arr = new Uint8Array(buffer);
+    let text = '';
+    const mode = decodeMode.value;
+    if (mode === 'utf8') {
+      text = decodeUTF8(arr);
+    } else if (mode === 'ascii') {
+      text = decodeASCII(arr);
+    } else if (mode === 'strings') {
+      text = extractStrings(arr, parseInt(minLenSel.value, 10));
+    } else if (mode === 'hex') {
+      text = hexDump(arr, parseInt(rowWidthSel.value, 10));
+    } else if (mode === 'dwords-le') {
+      text = parseDwords(arr, 'le');
+    } else if (mode === 'dwords-be') {
+      text = parseDwords(arr, 'be');
+    }
+    output.textContent = text;
+    lastText = text;
+    downloadBtn.disabled = !text || text.length === 0;
+  }
+
+  function reset() {
+    buffer = null;
+    fileInput.value = '';
+    processBtn.disabled = true;
+    output.textContent = '';
+    fileInfo.textContent = '';
+    updateBadge(null);
+    downloadBtn.disabled = true;
+  }
+
+  async function readFile(file) {
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function handleFiles(files) {
+    const file = files && files[0];
+    if (!file) return;
+    const sizeOk = file.size <= 256 * 1024 * 1024; // 256MB soft limit
+    if (!sizeOk) {
+      fileInfo.textContent = 'File too large. Please use a smaller file.';
+      return;
+    }
+    fileInfo.textContent = `Loaded: ${file.name} • ${humanSize(file.size)} • Last modified: ${new Date(file.lastModified).toLocaleString()}`;
+    buffer = await readFile(file);
+    processBtn.disabled = false;
+    updateBadge(new Uint8Array(buffer));
+    process(); // auto-process with current mode
+  }
+
+  // Events
+  fileInput.addEventListener('change', e => handleFiles(e.target.files));
+  processBtn.addEventListener('click', process);
+  resetBtn.addEventListener('click', reset);
+
+  downloadBtn.addEventListener('click', () => {
+    const blob = new Blob([lastText || ''], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'extracted.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // Drag & Drop
+  ;['dragenter','dragover'].forEach(evt => {
+    drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('drag'); });
+  });
+  ;['dragleave','drop'].forEach(evt => {
+    drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); });
+  });
+  drop.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+  });
+})();
+</script>
+</body>
+</html>
