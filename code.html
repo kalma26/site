@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local Copilot — No login friendly code helper</title>
+  <style>
+    :root{
+      --bg:#0f1720; --card:#0b1220; --muted:#9aa4b2; --accent:#6ee7b7; --glass: rgba(255,255,255,0.03);
+      --radius:12px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#071226 0%, #07142b 60%); color:#e6eef6; min-height:100vh;
+      display:flex; align-items:center; justify-content:center; padding:28px;
+    }
+    .app{
+      width:100%; max-width:1100px; background:linear-gradient(180deg,var(--card), rgba(8,12,20,0.95)); border-radius:16px;
+      box-shadow: 0 10px 40px rgba(2,6,20,0.7); overflow:hidden; display:grid; grid-template-columns: 420px 1fr;
+      gap:1px; border:1px solid rgba(255,255,255,0.03);
+    }
+    .sidebar{
+      padding:20px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      display:flex; flex-direction:column; gap:14px;
+    }
+    h1{margin:0; font-size:18px; letter-spacing:0.2px}
+    .muted{color:var(--muted); font-size:13px}
+    label{font-size:13px; color:var(--muted); margin-bottom:6px; display:block}
+    select, input[type="text"], textarea{
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04);
+      background:var(--glass); color:inherit; outline:none; font-size:14px;
+    }
+    textarea{min-height:130px; resize:vertical; font-family:var(--mono); white-space:pre-wrap}
+    .row{display:flex; gap:10px}
+    button{
+      background:linear-gradient(90deg,var(--accent), #49b19b); color:#042016; border:none; padding:10px 14px;
+      border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    .secondary{background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); font-weight:600}
+    .controls{display:flex; gap:10px; align-items:center}
+    .small{font-size:13px; padding:8px 10px; border-radius:8px}
+    .main{
+      padding:18px; display:flex; flex-direction:column; gap:14px; min-height:420px;
+      background:linear-gradient(180deg, rgba(5,10,18,0.2), rgba(5,8,15,0.12));
+    }
+    .results{display:grid; gap:12px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.03);
+      display:flex; flex-direction:column; gap:8px;
+    }
+    pre{background:transparent; margin:0; white-space:pre-wrap; font-family:var(--mono); font-size:13px; color:#e6f6ee}
+    .meta{display:flex; justify-content:space-between; align-items:center; gap:8px}
+    .actions{display:flex; gap:8px}
+    .chip{background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:999px; font-size:12px; color:var(--muted)}
+    .tiny{font-size:12px; color:var(--muted)}
+    .footer{margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:10px}
+    .hint{font-size:12px; color:var(--muted)}
+    .kbd{background:rgba(255,255,255,0.03); padding:4px 6px; border-radius:6px; font-family:var(--mono); font-size:12px}
+    .empty{height:160px; display:flex; align-items:center; justify-content:center; color:var(--muted); border-radius:12px; border:1px dashed rgba(255,255,255,0.03)}
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr; max-width:720px}
+      .sidebar{order:2}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Local Copilot">
+    <div class="sidebar" aria-hidden="false">
+      <div>
+        <h1>Local Copilot</h1>
+        <div class="muted">Generate friendly code snippets and explanations — no login needed.</div>
+      </div>
+
+      <div>
+        <label for="lang">Language / Target</label>
+        <select id="lang" aria-label="Choose language">
+          <option>JavaScript</option>
+          <option>TypeScript</option>
+          <option>Python</option>
+          <option>HTML/CSS</option>
+          <option>Go</option>
+          <option>Shell</option>
+          <option>Markdown</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="mode">Mode</label>
+        <select id="mode" aria-label="Choose mode">
+          <option value="complete">Complete code</option>
+          <option value="snippet">Short snippet</option>
+          <option value="explain">Explain + snippet</option>
+          <option value="todo">To-do / plan</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="prompt">Prompt / instruction</label>
+        <textarea id="prompt" placeholder="Write a short description, e.g. 'fetch data and show a loading spinner'"></textarea>
+      </div>
+
+      <div class="controls">
+        <button id="generate">Generate</button>
+        <button class="secondary small" id="shuffle">Shuffle</button>
+        <button class="secondary small" id="clear">Clear</button>
+      </div>
+
+      <div class="footer">
+        <div class="hint">Tip: press <span class="kbd">Ctrl↵</span> to generate fast</div>
+        <div class="tiny">Local • Privacy-first</div>
+      </div>
+    </div>
+
+    <main class="main" role="main">
+      <div class="meta">
+        <div class="chip" id="status">Ready</div>
+        <div class="tiny">Suggestions appear below — editable and copyable</div>
+      </div>
+
+      <div id="results" class="results" aria-live="polite">
+        <div class="empty" id="empty">No suggestions yet — enter a prompt and press Generate.</div>
+      </div>
+
+      <div class="tiny muted">This is a local, client-side helper. It uses small heuristics & templates to create friendly suggestions — it does not call any remote AI service.</div>
+    </main>
+  </div>
+
+  <script>
+    // Local Copilot — single-file friendly generator (no login, no network)
+    // Features:
+    // - Simple template-based generation producing 3 variations
+    // - Copy and download buttons, keyboard shortcut (Ctrl+Enter)
+    // - LocalStorage to remember last prompt + settings
+    // - Accessible and responsive
+
+    const langEl = document.getElementById('lang');
+    const modeEl = document.getElementById('mode');
+    const promptEl = document.getElementById('prompt');
+    const generateBtn = document.getElementById('generate');
+    const resultsEl = document.getElementById('results');
+    const statusEl = document.getElementById('status');
+    const shuffleBtn = document.getElementById('shuffle');
+    const clearBtn = document.getElementById('clear');
+    const emptyEl = document.getElementById('empty');
+
+    // Persist simple state
+    const KEY = 'local-copilot:v1';
+    function saveState(){
+      localStorage.setItem(KEY, JSON.stringify({
+        lang: langEl.value, mode: modeEl.value, prompt: promptEl.value
+      }));
+    }
+    function loadState(){
+      try{
+        const s = JSON.parse(localStorage.getItem(KEY) || '{}');
+        if(s.lang) langEl.value = s.lang;
+        if(s.mode) modeEl.value = s.mode;
+        if(s.prompt) promptEl.value = s.prompt;
+      }catch(e){}
+    }
+    loadState();
+
+    // Small helper: create a friendly "AI-like" variation from prompt
+    function generateVariations(prompt, lang, mode, seed){
+      // Basic safety: trim
+      prompt = (prompt || '').trim();
+      const base = prompt || 'Create a small example that demonstrates the idea.';
+      // Variation templates
+      const templates = [
+        {title:'Complete', fn:completeTemplate},
+        {title:'Snippet', fn:shortTemplate},
+        {title:'Explain', fn:explainTemplate}
+      ];
+      // Choose 3 using seed for deterministic shuffle
+      const out = [];
+      for(let i=0;i<3;i++){
+        const t = templates[(seed + i) % templates.length];
+        out.push({title:t.title, code:t.fn(base, lang, mode, i+1)});
+      }
+      return out;
+    }
+
+    function completeTemplate(prompt, lang, mode, variant){
+      // Create a fuller "implementation" using limited heuristics per language
+      const examples = {
+        'JavaScript': jsComplete,
+        'TypeScript': tsComplete,
+        'Python': pyComplete,
+        'HTML/CSS': htmlComplete,
+        'Go': goComplete,
+        'Shell': shComplete,
+        'Markdown': mdComplete
+      };
+      const fn = examples[lang] || jsComplete;
+      return fn(prompt, mode, variant);
+    }
+
+    // Implementations (small, readable, friendly)
+    function jsComplete(p, mode, v){
+      return `// JavaScript example (${v})
+${simpleComment(p)}
+async function main(){
+  try{
+    // Example: ${p}
+    const res = await fetch('https://example.com/data');
+    if(!res.ok) throw new Error('Network error');
+    const data = await res.json();
+    console.log('Got', data);
+    // render data into DOM
+    const root = document.getElementById('app') || document.body;
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(data, null, 2);
+    root.appendChild(pre);
+  }catch(err){
+    console.error(err);
+  }
+}
+main();`;
+    }
+    function tsComplete(p, mode, v){
+      return `// TypeScript example (${v})
+${simpleComment(p)}
+type Item = { id: string; name: string; };
+
+async function fetchItems(): Promise<Item[]>{
+  const res = await fetch('/api/items');
+  if(!res.ok) throw new Error('Fetch failed');
+  return res.json();
+}
+
+(async function(){
+  const items = await fetchItems();
+  console.log('items', items);
+})();`;
+    }
+    function pyComplete(p, mode, v){
+      return `# Python example (${v})
+${simpleComment(p)}
+import requests
+
+def fetch_data():
+    resp = requests.get('https://example.com/api')
+    resp.raise_for_status()
+    return resp.json()
+
+if __name__ == '__main__':
+    data = fetch_data()
+    print('Got', data)`;
+    }
+    function htmlComplete(p, mode, v){
+      return `<!-- HTML/CSS example (${v}) -->
+${simpleComment(p)}
+<div id="app">
+  <style>
+    .card{background:#0b1220;padding:12px;border-radius:8px;color:#cfeee0}
+  </style>
+  <div class="card">This is a simple UI showing fetched data — replace the text with your own.</div>
+</div>
+<script>
+  // small demo script
+  document.getElementById('app').querySelector('.card').textContent = 'Demo: ${escapeForTemplate(p)}';
+</script>`;
+    }
+    function goComplete(p, mode, v){
+      return `// Go example (${v})
+${simpleComment(p)}
+package main
+
+import (
+  "encoding/json"
+  "fmt"
+  "net/http"
+)
+
+func main(){
+  resp, _ := http.Get("https://example.com/data")
+  defer resp.Body.Close()
+  var x interface{}
+  json.NewDecoder(resp.Body).Decode(&x)
+  fmt.Printf("Got: %+v\\n", x)
+}`;
+    }
+    function shComplete(p, mode, v){
+      return `# Shell example (${v})
+${simpleComment(p)}
+set -euo pipefail
+curl -sSf "https://example.com/api" | jq '.'`;
+    }
+    function mdComplete(p, mode, v){
+      return `<!-- Markdown example (${v}) -->
+${simpleComment(p)}
+# ${p}
+A short demo or explanation goes here. Replace with your own notes, steps, or code snippets.`;
+    }
+
+    function shortTemplate(prompt, lang, mode, v){
+      // a compact snippet
+      return `// Quick ${lang} snippet (${v})
+${simpleComment(prompt)}
+// ${truncate(prompt, 80)}
+${smallSnippetFor(lang, prompt)}`;
+    }
+
+    function explainTemplate(prompt, lang, mode, v){
+      // explanation + small snippet
+      return `# Explanation (${lang})
+${simpleComment(prompt)}
+This suggestion explains how to achieve: "${prompt}". Steps:
+1. Parse input and validate.
+2. Fetch or compute the data.
+3. Render or return a concise result.
+
+Example:
+${smallSnippetFor(lang, prompt)}`;
+    }
+
+    function smallSnippetFor(lang, prompt){
+      const map = {
+        'JavaScript': `const fetchData = async () => (await fetch('/api')).json();`,
+        'TypeScript': `const fetchData = async (): Promise<any> => (await fetch('/api')).json();`,
+        'Python': `import requests\nresp = requests.get('https://example.com')\nprint(resp.json())`,
+        'HTML/CSS': `<div class="box">Hello — replace with your UI</div>`,
+        'Go': `resp, _ := http.Get("https://example.com")`,
+        'Shell': `curl -s 'https://example.com' | jq '.'`,
+        'Markdown': `- Step 1: Do X\n- Step 2: Do Y`
+      };
+      return map[lang] || map['JavaScript'];
+    }
+
+    // Helpers
+    function simpleComment(p){
+      return p ? `// ${escapeForTemplate(truncate(p, 80))}` : `// Example generated snippet`;
+    }
+    function truncate(s, n){ return s.length>n? s.slice(0,n-1)+'…': s; }
+    function escapeForTemplate(s){ return s.replace(/`/g,'\\`').replace(/\$/g,'\\$'); }
+
+    function renderResults(suggestions){
+      resultsEl.innerHTML = '';
+      if(!suggestions || suggestions.length===0){
+        resultsEl.appendChild(emptyEl);
+        return;
+      }
+      suggestions.forEach((s,i)=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const left = document.createElement('div');
+        left.innerHTML = `<strong>${s.title}</strong> <span class="tiny" style="margin-left:8px;color:var(--muted)">variation ${i+1}</span>`;
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const copy = document.createElement('button');
+        copy.className = 'secondary small';
+        copy.textContent = 'Copy';
+        copy.addEventListener('click', ()=>{ copyText(s.code); copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',900);});
+        const download = document.createElement('button');
+        download.className = 'secondary small';
+        download.textContent = 'Download';
+        download.addEventListener('click', ()=>downloadFile(s.code, `${slugify(s.title)}.txt`));
+        const edit = document.createElement('button');
+        edit.className = 'small';
+        edit.textContent = 'Edit';
+        edit.addEventListener('click', ()=>openEditor(s.code, s.title));
+        actions.appendChild(copy); actions.appendChild(download); actions.appendChild(edit);
+        meta.appendChild(left); meta.appendChild(actions);
+
+        const pre = document.createElement('pre');
+        pre.textContent = s.code;
+
+        card.appendChild(meta);
+        card.appendChild(pre);
+        resultsEl.appendChild(card);
+      });
+    }
+
+    function copyText(t){
+      navigator.clipboard?.writeText(t).catch(()=>{ // fallback
+        const ta = document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); }catch(e){} ta.remove();
+      });
+    }
+
+    function downloadFile(content, filename){
+      const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function openEditor(content, title){
+      // quick in-page editor modal (light)
+      const modal = document.createElement('div');
+      Object.assign(modal.style, {
+        position:'fixed', inset:0, background:'rgba(2,6,20,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999
+      });
+      const box = document.createElement('div');
+      box.style.width='min(1100px,92vw)'; box.style.maxHeight='86vh'; box.style.overflow='auto';
+      box.style.background='linear-gradient(180deg,#071726,#07112b)'; box.style.borderRadius='12px'; box.style.padding='12px';
+      const ta = document.createElement('textarea');
+      ta.value = content; ta.style.width='100%'; ta.style.height='60vh'; ta.style.fontFamily='var(--mono)'; ta.style.fontSize='13px';
+      const bar = document.createElement('div'); bar.style.display='flex'; bar.style.justifyContent='flex-end'; bar.style.gap='8px'; bar.style.marginTop='8px';
+      const save = document.createElement('button'); save.textContent='Copy & Close'; save.className='small';
+      const close = document.createElement('button'); close.textContent='Close'; close.className='secondary small';
+      save.addEventListener('click', ()=>{ copyText(ta.value); document.body.removeChild(modal); });
+      close.addEventListener('click', ()=>{ document.body.removeChild(modal); });
+      bar.appendChild(save); bar.appendChild(close);
+      box.appendChild(ta); box.appendChild(bar);
+      modal.appendChild(box);
+      document.body.appendChild(modal);
+      ta.focus();
+    }
+
+    function slugify(s){ return s.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-_]/g,'').replace(/-+/g,'-'); }
+
+    // Main generate handler
+    function doGenerate({seed=null} = {}){
+      const prompt = promptEl.value.trim();
+      const lang = langEl.value;
+      const mode = modeEl.value;
+      saveState();
+      statusEl.textContent = 'Generating…';
+      setTimeout(()=>{ // simulate thinking
+        const useSeed = seed===null ? Math.floor(Math.random()*1000) : seed;
+        const raw = generateVariations(prompt, lang, mode, useSeed);
+        // If user selected specific mode, tweak titles
+        if(mode === 'snippet') raw.forEach(r=>r.title = 'Snippet');
+        if(mode === 'explain') raw.forEach(r=>r.title = 'Explain');
+        if(mode === 'todo') raw.forEach(r=>{ r.title = 'Plan'; r.code = generatePlan(prompt, lang);});
+        renderResults(raw);
+        statusEl.textContent = `Ready — ${raw.length} suggestion${raw.length>1?'s':''}`;
+      }, 260); // small delay for UX
+    }
+
+    function generatePlan(prompt, lang){
+      // small to-do generator
+      const steps = [
+        `Understand input: clarify requirements and edge cases for "${prompt}".`,
+        'Design data flow: where inputs come from and how results are returned or rendered.',
+        'Implement: write small functions, test locally with sample data.',
+        'Polish: add error handling, UX treats failures gracefully.',
+        'Document: add comments and short README explaining usage.'
+      ];
+      return `# Plan for: ${prompt}\n\n` + steps.map((s,i)=>`${i+1}. ${s}`).join('\n');
+    }
+
+    // UI wiring
+    generateBtn.addEventListener('click', ()=>doGenerate());
+    shuffleBtn.addEventListener('click', ()=>doGenerate({seed: Math.floor(Math.random()*1000)}));
+    clearBtn.addEventListener('click', ()=>{ promptEl.value=''; saveState(); resultsEl.innerHTML=''; resultsEl.appendChild(emptyEl); statusEl.textContent='Ready'; });
+
+    // keyboard shortcut Ctrl/Cmd + Enter
+    window.addEventListener('keydown', (e)=>{
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+        e.preventDefault(); doGenerate();
+      }
+    });
+
+    // Save state on changes
+    [langEl, modeEl, promptEl].forEach(el=>el.addEventListener('change', saveState));
+    promptEl.addEventListener('input', ()=>{ saveState(); });
+
+    // Initial empty state
+    (function init(){
+      if(promptEl.value.trim()) {
+        // optionally auto-generate a lightweight example on load (commented out)
+        // doGenerate();
+      }
+    })();
+
+    // small utilities for template safety
+    function escapeHtml(unsafe){
+      return unsafe.replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; });
+    }
+
+  </script>
+</body>
+</html>
