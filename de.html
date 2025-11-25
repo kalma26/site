@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clean Build Orchestrator (Config & Guide)</title>
+<style>
+  :root {
+    --bg: #0f1226; --panel: #161938; --accent: #5bd1d7; --text: #e9ecf1; --muted: #9aa0b4;
+    --ok: #3bd68c; --warn: #ffd166; --bad: #ff6b6b;
+  }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 24px; border-bottom: 1px solid #252a4a; }
+  h1 { margin: 0 0 8px; font-size: 1.5rem; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .card { background: var(--panel); border-radius: 12px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+  .card h2, .card h3 { margin-top: 0; font-size: 1.1rem; }
+  .row { display: flex; gap: 12px; align-items: center; margin: 8px 0; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type="text"], select, textarea { width: 100%; background: #0e1130; color: var(--text); border: 1px solid #2b315a; border-radius: 8px; padding: 10px; }
+  input[type="checkbox"] { transform: scale(1.2); }
+  .small { color: var(--muted); font-size: 0.9rem; }
+  .btn { background: var(--accent); color: #041b1c; border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+  .btn.secondary { background: #2b315a; color: var(--text); }
+  pre, code { background: #0e1130; color: #e9ecf1; border: 1px solid #2b315a; border-radius: 8px; padding: 12px; overflow: auto; }
+  .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 0.8rem; margin-right: 6px; }
+  .ok { background: #173a2a; color: var(--ok); border: 1px solid #2f7b59; }
+  .warn { background: #3b320e; color: var(--warn); border: 1px solid #9a7a1c; }
+  .bad { background: #3b1e1e; color: var(--bad); border: 1px solid #8a3a3a; }
+  footer { padding: 16px 24px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Clean Build Orchestrator</h1>
+  <div class="small">Generate build_config.json, set flags for a clean Debug build, and copy-ready commands. Host this file on GitHub Pages.</div>
+</header>
+
+<div class="container">
+  <div class="grid">
+    <div class="card">
+      <h2>Project basics</h2>
+      <label>Solution or project path (.sln/.csproj)</label>
+      <input id="projPath" type="text" placeholder="MyApp.sln" value="MyApp.sln" />
+      <div class="row">
+        <div style="flex:1">
+          <label>Build tool</label>
+          <select id="buildTool">
+            <option value="dotnet">dotnet</option>
+            <option value="msbuild">msbuild</option>
+            <option value="python">python (for Python projects)</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label>Configuration</label>
+          <select id="configuration">
+            <option value="Debug">Debug</option>
+            <option value="Release">Release</option>
+          </select>
+        </div>
+      </div>
+      <label>Debug output path (for your artifacts)</label>
+      <input id="debugOut" type="text" placeholder="bin/Debug/net8.0" value="bin/Debug/net8.0" />
+      <div class="row">
+        <button class="btn" id="saveBasics">Save basics</button>
+        <span class="small" id="basicsSaved"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Feature flags</h2>
+      <div class="row"><input type="checkbox" id="OBFUSCATION_ENABLED" /><label for="OBFUSCATION_ENABLED">Obfuscation enabled</label></div>
+      <div class="row"><input type="checkbox" id="PACKER_ENABLED" /><label for="PACKER_ENABLED">Packer/compression enabled</label></div>
+      <div class="row"><input type="checkbox" id="ANTI_DEBUG_ENABLED" /><label for="ANTI_DEBUG_ENABLED">Anti-debug enabled</label></div>
+      <div class="row"><input type="checkbox" id="ANTI_DUMP_ENABLED" /><label for="ANTI_DUMP_ENABLED">Anti-dump enabled</label></div>
+      <div class="row"><input type="checkbox" id="ANTI_ILDASM_ENABLED" /><label for="ANTI_ILDASM_ENABLED">Anti-ILDASM enabled</label></div>
+      <div class="row"><input type="checkbox" id="WATERMARK_ENABLED" /><label for="WATERMARK_ENABLED">Watermark enabled</label></div>
+      <div class="row"><input type="checkbox" id="USE_STRANGE_EP" /><label for="USE_STRANGE_EP">Strange entry point</label></div>
+      <div class="row"><input type="checkbox" id="USE_CLR_CONSTRUCTOR_TRICK" /><label for="USE_CLR_CONSTRUCTOR_TRICK">CLR constructor trick</label></div>
+      <div class="row"><input type="checkbox" id="GENERATE_PDB" checked /><label for="GENERATE_PDB">Generate PDB symbols</label></div>
+      <div class="row">
+        <button class="btn" id="generateJson">Generate build_config.json</button>
+        <button class="btn secondary" id="downloadJson">Download JSON</button>
+      </div>
+      <div class="small">Tip: For a clean Debug build, leave protections unchecked and keep “Generate PDB” checked.</div>
+    </div>
+
+    <div class="card">
+      <h2>Artifacts to copy</h2>
+      <div class="small">List the Debug outputs you want copied into build/debug_clean.</div>
+      <textarea id="artifacts" rows="5" placeholder='[
+  ["bin/Debug/net8.0/MyApp.exe", "build/debug_clean/MyApp.exe"],
+  ["bin/Debug/net8.0/MyApp.pdb", "build/debug_clean/MyApp.pdb"]
+]'>[
+  ["bin/Debug/net8.0/MyApp.exe", "build/debug_clean/MyApp.exe"],
+  ["bin/Debug/net8.0/MyApp.pdb", "build/debug_clean/MyApp.pdb"]
+]</textarea>
+      <div class="row">
+        <button class="btn" id="saveArtifacts">Save artifacts</button>
+        <span class="small" id="artifactsSaved"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Command snippets</h2>
+      <div id="status"></div>
+      <label>Run build (local CLI)</label>
+      <pre id="buildCmd">dotnet build "MyApp.sln" --configuration Debug</pre>
+      <label>Verify artifacts (expected layout)</label>
+      <pre id="verifyCmd"># Check these exist after build:
+# bin/Debug/net8.0/MyApp.exe
+# bin/Debug/net8.0/MyApp.pdb</pre>
+      <label>Copy artifacts (example PowerShell)</label>
+      <pre id="copyCmd">New-Item -ItemType Directory -Force -Path build/debug_clean | Out-Null
+Copy-Item "bin/Debug/net8.0/MyApp.exe" -Destination "build/debug_clean/MyApp.exe"
+Copy-Item "bin/Debug/net8.0/MyApp.pdb" -Destination "build/debug_clean/MyApp.pdb"</pre>
+      <div class="small">You can run these locally or adapt to your CI workflow.</div>
+    </div>
+
+    <div class="card">
+      <h2>Generated build_config.json</h2>
+      <pre id="jsonPreview">{}</pre>
+      <div class="row">
+        <span class="badge ok">Symbols required</span>
+        <span class="badge warn">Protections disabled in Debug</span>
+        <span class="badge bad">Skip packer in Debug</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built for clean, debuggable builds without touching legacy Release steps. Host this HTML on GitHub Pages.
+</footer>
+
+<script>
+(function(){
+  const el = (id) => document.getElementById(id);
+  const state = {
+    projPath: "MyApp.sln",
+    buildTool: "dotnet",
+    configuration: "Debug",
+    debugOut: "bin/Debug/net8.0",
+    features: {
+      OBFUSCATION_ENABLED: false,
+      PACKER_ENABLED: false,
+      ANTI_DEBUG_ENABLED: false,
+      ANTI_DUMP_ENABLED: false,
+      ANTI_ILDASM_ENABLED: false,
+      WATERMARK_ENABLED: false,
+      USE_STRANGE_EP: false,
+      USE_CLR_CONSTRUCTOR_TRICK: false,
+      GENERATE_PDB: true
+    },
+    artifacts: [
+      ["bin/Debug/net8.0/MyApp.exe", "build/debug_clean/MyApp.exe"],
+      ["bin/Debug/net8.0/MyApp.pdb", "build/debug_clean/MyApp.pdb"]
+    ]
+  };
+
+  function refreshBuildCmd(){
+    let cmd = "";
+    if (state.buildTool === "dotnet") {
+      cmd = `dotnet build "${state.projPath}" --configuration ${state.configuration}`;
+    } else if (state.buildTool === "msbuild") {
+      cmd = `msbuild "${state.projPath}" /p:Configuration=${state.configuration}`;
+    } else {
+      cmd = `python "${state.projPath}"  # adjust for Python projects`;
+    }
+    el("buildCmd").textContent = cmd;
+    el("verifyCmd").textContent = `# Check these exist after build:\n# ${state.debugOut}/MyApp.exe\n# ${state.debugOut}/MyApp.pdb`;
+    el("copyCmd").textContent =
+      `New-Item -ItemType Directory -Force -Path build/debug_clean | Out-Null\n` +
+      `Copy-Item "${state.debugOut}/MyApp.exe" -Destination "build/debug_clean/MyApp.exe"\n` +
+      `Copy-Item "${state.debugOut}/MyApp.pdb" -Destination "build/debug_clean/MyApp.pdb"`;
+    el("status").innerHTML =
+      `<span class="badge warn">Config: ${state.configuration}</span>` +
+      `<span class="badge ok">Tool: ${state.buildTool}</span>`;
+  }
+
+  function getJson(){
+    const json = {
+      features: { ...state.features }
+    };
+    return JSON.stringify(json, null, 2);
+  }
+
+  function refreshJson(){
+    el("jsonPreview").textContent = getJson();
+  }
+
+  function saveBasics(){
+    state.projPath = el("projPath").value.trim() || "MyApp.sln";
+    state.buildTool = el("buildTool").value;
+    state.configuration = el("configuration").value;
+    state.debugOut = el("debugOut").value.trim() || "bin/Debug/net8.0";
+    el("basicsSaved").textContent = "Saved.";
+    refreshBuildCmd();
+  }
+
+  function saveArtifacts(){
+    try {
+      const arr = JSON.parse(el("artifacts").value);
+      if (!Array.isArray(arr)) throw new Error("Artifacts must be an array of [src,dst] pairs.");
+      state.artifacts = arr;
+      el("artifactsSaved").textContent = "Saved.";
+    } catch (e) {
+      el("artifactsSaved").textContent = "Invalid JSON: " + e.message;
+    }
+  }
+
+  function setFlag(id){
+    state.features[id] = el(id).checked;
+    refreshJson();
+  }
+
+  // Wire events
+  el("saveBasics").addEventListener("click", saveBasics);
+  el("saveArtifacts").addEventListener("click", saveArtifacts);
+  ["OBFUSCATION_ENABLED","PACKER_ENABLED","ANTI_DEBUG_ENABLED","ANTI_DUMP_ENABLED","ANTI_ILDASM_ENABLED",
+   "WATERMARK_ENABLED","USE_STRANGE_EP","USE_CLR_CONSTRUCTOR_TRICK","GENERATE_PDB"]
+   .forEach(id => el(id).addEventListener("change", ()=>setFlag(id)));
+  el("generateJson").addEventListener("click", refreshJson);
+
+  el("downloadJson").addEventListener("click", () => {
+    const blob = new Blob([getJson()], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "build_config.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // Initial render
+  refreshBuildCmd();
+  refreshJson();
+})();
+</script>
+</body>
+</html>
